@@ -8,11 +8,11 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
 -- ///////////////////////////////////////////////////////////
--- //                 UI 基礎設定 (hamster V9)              //
+-- //                 UI 基礎設定 (hamster V10)             //
 -- ///////////////////////////////////////////////////////////
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "hamsterHub_V9_UI"
+ScreenGui.Name = "hamsterHub_V10_UI"
 if pcall(function() ScreenGui.Parent = CoreGui end) then
     ScreenGui.Parent = CoreGui
 else
@@ -26,7 +26,7 @@ MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 MainFrame.BackgroundTransparency = 0.1
 MainFrame.Position = UDim2.new(0.5, -280, 0.5, -180)
-MainFrame.Size = UDim2.new(0, 560, 0, 360)
+MainFrame.Size = UDim2.new(0, 580, 0, 380) -- [加大] 稍微加大視窗
 MainFrame.ClipsDescendants = true
 MainFrame.Active = true
 MainFrame.Draggable = true
@@ -40,17 +40,17 @@ UIStroke.Thickness = 2
 UIStroke.Transparency = 0.2
 
 -- ///////////////////////////////////////////////////////////
--- //                 確認視窗 & 通知提示 (新功能)          //
+-- //                 確認視窗 & 通知提示                   //
 -- ///////////////////////////////////////////////////////////
 
--- 1. 退出確認視窗 (Confirm Dialog)
+-- 1. 退出確認視窗
 local ConfirmFrame = Instance.new("Frame")
 ConfirmFrame.Parent = ScreenGui
 ConfirmFrame.Size = UDim2.new(0, 300, 0, 150)
 ConfirmFrame.Position = UDim2.new(0.5, -150, 0.5, -75)
 ConfirmFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 ConfirmFrame.Visible = false
-ConfirmFrame.ZIndex = 10
+ConfirmFrame.ZIndex = 20
 Instance.new("UICorner", ConfirmFrame).CornerRadius = UDim.new(0, 10)
 Instance.new("UIStroke", ConfirmFrame).Color = Color3.fromRGB(255, 50, 50)
 
@@ -61,7 +61,7 @@ ConfirmTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 ConfirmTitle.BackgroundTransparency = 1
 ConfirmTitle.Font = Enum.Font.GothamBold
 ConfirmTitle.TextSize = 18
-ConfirmTitle.ZIndex = 10
+ConfirmTitle.ZIndex = 21
 
 local YesBtn = Instance.new("TextButton", ConfirmFrame)
 YesBtn.Size = UDim2.new(0, 100, 0, 35)
@@ -70,7 +70,7 @@ YesBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
 YesBtn.Text = "退出 (Yes)"
 YesBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 YesBtn.Font = Enum.Font.GothamBold
-YesBtn.ZIndex = 10
+YesBtn.ZIndex = 21
 Instance.new("UICorner", YesBtn).CornerRadius = UDim.new(0, 6)
 
 local NoBtn = Instance.new("TextButton", ConfirmFrame)
@@ -80,14 +80,14 @@ NoBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 NoBtn.Text = "取消 (No)"
 NoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 NoBtn.Font = Enum.Font.GothamBold
-NoBtn.ZIndex = 10
+NoBtn.ZIndex = 21
 Instance.new("UICorner", NoBtn).CornerRadius = UDim.new(0, 6)
 
--- 2. 右下角縮小提示 (Notification)
+-- 2. 右下角縮小提示
 local NotifyLabel = Instance.new("TextLabel")
 NotifyLabel.Parent = ScreenGui
 NotifyLabel.Size = UDim2.new(0, 200, 0, 40)
-NotifyLabel.Position = UDim2.new(1, -220, 1, -60) -- 右下角
+NotifyLabel.Position = UDim2.new(1, -220, 1, -60)
 NotifyLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 NotifyLabel.BackgroundTransparency = 0.2
 NotifyLabel.Text = "按 [K] 重新開啟介面"
@@ -105,22 +105,22 @@ Instance.new("UIStroke", NotifyLabel).Color = Color3.fromRGB(0, 255, 255)
 local Sidebar = Instance.new("Frame")
 Sidebar.Parent = MainFrame
 Sidebar.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-Sidebar.Size = UDim2.new(0, 150, 1, 0)
+Sidebar.Size = UDim2.new(0, 160, 1, 0) -- [微調] 側邊欄加寬一點點
 Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0, 10)
 
 local Title = Instance.new("TextLabel")
 Title.Parent = Sidebar
-Title.Text = "hamster V9"
-Title.Size = UDim2.new(1, 0, 0, 50)
+Title.Text = "hamster V10"
+Title.Size = UDim2.new(1, 0, 0, 60) -- [微調] 標題區域加高
 Title.TextColor3 = Color3.fromRGB(255, 180, 50)
 Title.Font = Enum.Font.GothamBlack
-Title.TextSize = 22
+Title.TextSize = 24
 Title.BackgroundTransparency = 1
 
 local TabContainer = Instance.new("ScrollingFrame")
 TabContainer.Parent = Sidebar
-TabContainer.Position = UDim2.new(0, 0, 0, 60)
-TabContainer.Size = UDim2.new(1, 0, 1, -60)
+TabContainer.Position = UDim2.new(0, 0, 0, 70)
+TabContainer.Size = UDim2.new(1, 0, 1, -70)
 TabContainer.BackgroundTransparency = 1
 TabContainer.ScrollBarThickness = 2
 
@@ -129,67 +129,70 @@ TabListLayout.Parent = TabContainer
 TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 TabListLayout.Padding = UDim.new(0, 5)
 
+-- [關鍵修復] 內容顯示區 - 往下移動，避開右上角按鈕
 local ContentArea = Instance.new("Frame")
 ContentArea.Parent = MainFrame
-ContentArea.Position = UDim2.new(0, 160, 0, 10)
-ContentArea.Size = UDim2.new(1, -170, 1, -20)
+ContentArea.Position = UDim2.new(0, 170, 0, 55) -- Y=55 (原本是10)，讓出上方空間
+ContentArea.Size = UDim2.new(1, -180, 1, -65)   -- 高度相對減少，避免超出
 ContentArea.BackgroundTransparency = 1
 
 -- ///////////////////////////////////////////////////////////
--- //                 右上角控制鍵 (Min, Max, Close)        //
+-- //                 右上角控制鍵 (加大版)                 //
 -- ///////////////////////////////////////////////////////////
 
 local function createTopBtn(text, color, order, callback)
     local btn = Instance.new("TextButton")
     btn.Parent = MainFrame
-    btn.Size = UDim2.new(0, 30, 0, 30)
-    -- 計算位置：最右邊是 Close, 往左推
-    btn.Position = UDim2.new(1, -35 * order - 5, 0, 5) 
+    -- [加大] 尺寸改成 40x40
+    btn.Size = UDim2.new(0, 40, 0, 40)
+    -- [間距] 調整位置計算，避免重疊 (-45 * order)
+    btn.Position = UDim2.new(1, -45 * order - 10, 0, 8) 
     btn.Text = text
     btn.TextColor3 = color
-    btn.BackgroundTransparency = 1
+    btn.BackgroundTransparency = 1 -- 透明背景，只顯示文字/符號
     btn.Font = Enum.Font.GothamBlack
-    btn.TextSize = 18
+    btn.TextSize = 24 -- [加大] 文字也加大
+    
+    -- 增加一個圓形背景讓按鈕更明顯 (選用)
+    local bg = Instance.new("Frame")
+    bg.Parent = btn
+    bg.Size = UDim2.new(1,0,1,0)
+    bg.BackgroundColor3 = Color3.fromRGB(255,255,255)
+    bg.BackgroundTransparency = 0.95
+    bg.ZIndex = -1
+    Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 8)
+    
     btn.MouseButton1Click:Connect(callback)
     return btn
 end
 
--- 1. 關閉鍵 (X) - 顯示確認視窗
+-- 1. 關閉鍵 (X) - 紅色
 createTopBtn("X", Color3.fromRGB(255, 80, 80), 0, function()
     ConfirmFrame.Visible = true
 end)
 
--- 2. 放大/還原鍵 (□) - 切換大小
+-- 2. 放大/還原鍵 (□) - 綠色
 local isMaximized = false
 createTopBtn("□", Color3.fromRGB(80, 255, 150), 1, function()
     isMaximized = not isMaximized
     if isMaximized then
-        MainFrame:TweenSize(UDim2.new(0, 700, 0, 450), "Out", "Quad", 0.3, true)
-        ContentArea.Size = UDim2.new(1, -170, 1, -20)
+        MainFrame:TweenSize(UDim2.new(0, 800, 0, 500), "Out", "Quad", 0.3, true)
     else
-        MainFrame:TweenSize(UDim2.new(0, 560, 0, 360), "Out", "Quad", 0.3, true)
-        ContentArea.Size = UDim2.new(1, -170, 1, -20)
+        MainFrame:TweenSize(UDim2.new(0, 580, 0, 380), "Out", "Quad", 0.3, true)
     end
 end)
 
--- 3. 縮小鍵 (-) - 隱藏並顯示提示
+-- 3. 縮小鍵 (-) - 黃色
 createTopBtn("-", Color3.fromRGB(255, 200, 80), 2, function()
     MainFrame.Visible = false
     NotifyLabel.Visible = true
-    -- 提示框顯示 3 秒後淡出
     wait(3)
-    if NotifyLabel.Visible then
-        NotifyLabel.Visible = false
-    end
+    if NotifyLabel.Visible then NotifyLabel.Visible = false end
 end)
 
 -- 確認視窗邏輯
-YesBtn.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
-end)
-NoBtn.MouseButton1Click:Connect(function()
-    ConfirmFrame.Visible = false
-end)
+YesBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+NoBtn.MouseButton1Click:Connect(function() ConfirmFrame.Visible = false end)
 
 
 -- ///////////////////////////////////////////////////////////
@@ -212,7 +215,7 @@ local function createTab(name)
     end)
     local Btn = Instance.new("TextButton")
     Btn.Parent = TabContainer
-    Btn.Size = UDim2.new(1, -10, 0, 35)
+    Btn.Size = UDim2.new(1, -10, 0, 40) -- [微調] 側邊按鈕加高
     Btn.BackgroundTransparency = 1
     Btn.Text = "  " .. name
     Btn.TextColor3 = Color3.fromRGB(150, 150, 150)
@@ -229,17 +232,17 @@ local function createTab(name)
 end
 
 local function createToggle(page, name, default, callback)
-    local Frame = Instance.new("Frame"); Frame.Parent=page; Frame.Size=UDim2.new(1,-5,0,40); Frame.BackgroundColor3=Color3.fromRGB(35,35,40); Instance.new("UICorner",Frame).CornerRadius=UDim.new(0,6)
+    local Frame = Instance.new("Frame"); Frame.Parent=page; Frame.Size=UDim2.new(1,-5,0,45); Frame.BackgroundColor3=Color3.fromRGB(35,35,40); Instance.new("UICorner",Frame).CornerRadius=UDim.new(0,6)
     local Label = Instance.new("TextLabel"); Label.Parent=Frame; Label.Text=name; Label.Size=UDim2.new(0.7,0,1,0); Label.Position=UDim2.new(0,10,0,0); Label.BackgroundTransparency=1; Label.TextColor3=Color3.fromRGB(255,255,255); Label.Font=Enum.Font.GothamSemibold; Label.TextXAlignment=Enum.TextXAlignment.Left; Label.TextSize=14
-    local Btn = Instance.new("TextButton"); Btn.Parent=Frame; Btn.Size=UDim2.new(0,40,0,20); Btn.Position=UDim2.new(1,-50,0.5,-10); Btn.BackgroundColor3=default and Color3.fromRGB(0,255,100) or Color3.fromRGB(60,60,60); Btn.Text=""; Instance.new("UICorner",Btn).CornerRadius=UDim.new(1,0)
+    local Btn = Instance.new("TextButton"); Btn.Parent=Frame; Btn.Size=UDim2.new(0,45,0,25); Btn.Position=UDim2.new(1,-60,0.5,-12.5); Btn.BackgroundColor3=default and Color3.fromRGB(0,255,100) or Color3.fromRGB(60,60,60); Btn.Text=""; Instance.new("UICorner",Btn).CornerRadius=UDim.new(1,0)
     local isOn = default
     Btn.MouseButton1Click:Connect(function() isOn=not isOn; Btn.BackgroundColor3=isOn and Color3.fromRGB(0,255,100) or Color3.fromRGB(60,60,60); callback(isOn) end)
 end
 
 local function createSlider(page, name, min, max, default, callback)
-    local Frame = Instance.new("Frame"); Frame.Parent=page; Frame.Size=UDim2.new(1,-5,0,50); Frame.BackgroundColor3=Color3.fromRGB(35,35,40); Instance.new("UICorner",Frame).CornerRadius=UDim.new(0,6)
+    local Frame = Instance.new("Frame"); Frame.Parent=page; Frame.Size=UDim2.new(1,-5,0,55); Frame.BackgroundColor3=Color3.fromRGB(35,35,40); Instance.new("UICorner",Frame).CornerRadius=UDim.new(0,6)
     local Label = Instance.new("TextLabel"); Label.Parent=Frame; Label.Text=name..": "..default; Label.Size=UDim2.new(1,-20,0,20); Label.Position=UDim2.new(0,10,0,5); Label.BackgroundTransparency=1; Label.TextColor3=Color3.fromRGB(255,255,255); Label.Font=Enum.Font.GothamSemibold; Label.TextXAlignment=Enum.TextXAlignment.Left; Label.TextSize=14
-    local Bar = Instance.new("Frame"); Bar.Parent=Frame; Bar.Size=UDim2.new(1,-20,0,6); Bar.Position=UDim2.new(0,10,0,30); Bar.BackgroundColor3=Color3.fromRGB(60,60,60); Instance.new("UICorner",Bar).CornerRadius=UDim.new(1,0)
+    local Bar = Instance.new("Frame"); Bar.Parent=Frame; Bar.Size=UDim2.new(1,-20,0,8); Bar.Position=UDim2.new(0,10,0,35); Bar.BackgroundColor3=Color3.fromRGB(60,60,60); Instance.new("UICorner",Bar).CornerRadius=UDim.new(1,0)
     local Fill = Instance.new("Frame"); Fill.Parent=Bar; Fill.Size=UDim2.new((default-min)/(max-min),0,1,0); Fill.BackgroundColor3=Color3.fromRGB(255, 180, 50); Instance.new("UICorner",Fill).CornerRadius=UDim.new(1,0)
     local Trigger = Instance.new("TextButton"); Trigger.Parent=Bar; Trigger.Size=UDim2.new(1,0,1,0); Trigger.BackgroundTransparency=1; Trigger.Text=""
     local dragging=false
@@ -256,7 +259,7 @@ local function createSlider(page, name, min, max, default, callback)
 end
 
 -- ///////////////////////////////////////////////////////////
--- //                 V9 功能核心                           //
+-- //                 功能核心 (Stats, Rage, Combat)        //
 -- ///////////////////////////////////////////////////////////
 
 local PageStats = createTab("數值修改 (Stats)")
@@ -380,9 +383,9 @@ end
 createToggle(PageVisual, "👁️ 玩家透視 (ESP)", false, function(state) espOn=state; updESP(); if state then spawn(function() while espOn do wait(3) updESP() end end) end end)
 
 UserInputService.InputBegan:Connect(function(i) 
-    if i.KeyCode==Enum.KeyCode.K then -- 按 K 顯示/隱藏
+    if i.KeyCode==Enum.KeyCode.K then 
         MainFrame.Visible = not MainFrame.Visible
-        NotifyLabel.Visible = false -- 既然已經開了，就隱藏提示
+        NotifyLabel.Visible = false
     end 
 end)
 
@@ -390,4 +393,4 @@ PageStats.Visible = true
 local firstBtn = TabContainer:FindFirstChildOfClass("TextButton")
 if firstBtn then firstBtn.TextColor3 = Color3.fromRGB(255, 180, 50) end
 
-print("hamsterHub_V9_UI Loaded")
+print("hamsterHub_V10_UI Loaded")
