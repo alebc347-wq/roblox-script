@@ -16,7 +16,7 @@ local Mouse = LocalPlayer:GetMouse()
 -- ///////////////////////////////////////////////////////////
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "HamsterHub_V42_Final"
+ScreenGui.Name = "HamsterHub_V43_Final"
 if pcall(function() ScreenGui.Parent = CoreGui end) then
     ScreenGui.Parent = CoreGui
 else
@@ -25,7 +25,7 @@ end
 
 local ToggleKey = Enum.KeyCode.K
 local selectedPlayer = nil
-local tpSpeed = 100 -- 預設穩定的傳送速度
+local tpSpeed = 120 -- 初始傳送速度
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
@@ -50,7 +50,7 @@ Sidebar.Size = UDim2.new(0, 180, 1, 0)
 Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0, 10)
 
 local TitleLabel = Instance.new("TextLabel", Sidebar)
-TitleLabel.Text = "Hamster V42"
+TitleLabel.Text = "Hamster V43"
 TitleLabel.Size = UDim2.new(1, 0, 0, 60)
 TitleLabel.TextColor3 = Color3.fromRGB(255, 180, 50)
 TitleLabel.Font = Enum.Font.GothamBlack
@@ -139,11 +139,35 @@ end
 
 local PageBedwars = createTab("🛌 床戰 (Bedwars)")
 local PageBF = createTab("🍎 海賊王 (Blox Fruits)")
+local PageVehicles = createTab("⛵ 船隻/載具 (Vehicles)")
 local PageRage = createTab("⚡ 暴力引擎 (Rage)")
 local PageStats = createTab("🔢 數值修改 (Stats)")
 local PageRivals = createTab("🔫 競爭者 (Rivals)")
 local PageVisual = createTab("👁️ 視覺透視 (Visual)")
 local PagePlayers = createTab("👥 玩家管理")
+
+-- ///////////////////////////////////////////////////////////
+-- //              ⛵ 船隻/載具加速功能 (New)              //
+-- ///////////////////////////////////////////////////////////
+
+createLabel(PageVehicles, "== 載具增強 ==")
+local boatSpeedActive = false
+local boatSpeedMul = 2
+RunService.Stepped:Connect(function()
+    if boatSpeedActive and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        local seat = LocalPlayer.Character.Humanoid.SeatPart
+        if seat and seat:IsA("VehicleSeat") then
+            -- 獲取前進方向並給予速度
+            if seat.Throttle ~= 0 then
+                seat.Velocity = seat.CFrame.LookVector * (seat.Throttle * boatSpeedMul * 60)
+            end
+        end
+    end
+end)
+
+createToggle(PageVehicles, "⛵ 暴力開船/載具加速", false, function(s) boatSpeedActive = s end)
+createSlider(PageVehicles, "⚡ 船隻速度倍率", 1, 100, 2, function(v) boatSpeedMul = v end)
+createLabel(PageVehicles, "說明：坐在船上駕駛座前進時生效")
 
 -- ///////////////////////////////////////////////////////////
 -- //              🛌 床戰與防拉回系統                      //
@@ -159,7 +183,7 @@ createToggle(PageBedwars, "🛡️ 防拉回系統 (Anti-Rubber)", false, functi
                 local hrp = LocalPlayer.Character.HumanoidRootPart
                 local state = LocalPlayer.Character.Humanoid:GetState()
                 if state == Enum.HumanoidStateType.Jumping then return end
-                if hrp.Velocity.Magnitude > 70 then hrp.Velocity = hrp.Velocity.Unit * 20 end
+                if hrp.Velocity.Magnitude > 75 then hrp.Velocity = hrp.Velocity.Unit * 25 end
             end
         end)
     else
@@ -175,8 +199,7 @@ createButton(PageBedwars, "📍 點擊飛行 (點擊地面移動)", function()
     local conn
     conn = UserInputService.InputBegan:Connect(function(input, gp)
         if not gp and input.UserInputType == Enum.UserInputType.MouseButton1 and flyActive then
-            flyActive = false
-            conn:Disconnect()
+            flyActive = false; conn:Disconnect()
             local targetPos = Mouse.Hit.p + Vector3.new(0, 5, 0)
             if LocalPlayer.Character then
                 local hrp = LocalPlayer.Character.HumanoidRootPart
@@ -190,7 +213,6 @@ createButton(PageBedwars, "📍 點擊飛行 (點擊地面移動)", function()
         end
     end)
 end)
-createSlider(PageBedwars, "✈️ 飛行速度", 20, 200, 60, function(v) flySpeedVal = v end)
 
 -- ///////////////////////////////////////////////////////////
 -- //              🍎 Blox Fruits 功能                      //
@@ -217,16 +239,11 @@ end)
 -- ///////////////////////////////////////////////////////////
 
 createLabel(PageRage, "== 暴力移動 ==")
-local rageOn = false
-local rageSpeedMul = 1
+local rageOn = false; local rageSpeedMul = 1
 RunService.Stepped:Connect(function()
     if rageOn and LocalPlayer.Character then
-        local hum = LocalPlayer.Character.Humanoid
-        local hrp = LocalPlayer.Character.HumanoidRootPart
-        if hum.MoveDirection.Magnitude > 0 then
-            hrp.CFrame = hrp.CFrame + (hum.MoveDirection * rageSpeedMul)
-            hrp.Velocity = Vector3.new(0,0,0)
-        end
+        local hum = LocalPlayer.Character.Humanoid; local hrp = LocalPlayer.Character.HumanoidRootPart
+        if hum.MoveDirection.Magnitude > 0 then hrp.CFrame = hrp.CFrame + (hum.MoveDirection * rageSpeedMul); hrp.Velocity = Vector3.new(0,0,0) end
     end
 end)
 createToggle(PageRage, "⏩ 暴力加速 (CFrame)", false, function(s) rageOn = s end)
@@ -239,7 +256,7 @@ createToggle(PageRage, "👻 穿牆", false, function(s) noclip = s end)
 -- //              🔢 數值修改 (Stats)                      //
 -- ///////////////////////////////////////////////////////////
 
-createLabel(PageStats, "== 基礎屬性 ==")
+createLabel(PageStats, "== 屬性修改 ==")
 createSlider(PageStats, "🏃 走路速度", 16, 500, 16, function(v) if LocalPlayer.Character then LocalPlayer.Character.Humanoid.WalkSpeed = v end end)
 createSlider(PageStats, "⬆️ 跳躍高度", 50, 500, 50, function(v) if LocalPlayer.Character then LocalPlayer.Character.Humanoid.JumpPower = v end end)
 local infJump = false
@@ -251,10 +268,7 @@ createToggle(PageStats, "☁️ 無限跳", false, function(s) infJump = s end)
 -- ///////////////////////////////////////////////////////////
 
 createLabel(PageRivals, "== 自瞄系統 ==")
-local aimEnabled = false
-local aimFOVSize = 100
-local aimHolding = false
-local FOVCircle = nil
+local aimEnabled = false; local aimFOVSize = 100; local aimHolding = false; local FOVCircle = nil
 if Drawing then
     FOVCircle = Drawing.new("Circle"); FOVCircle.Thickness = 1; FOVCircle.Radius = aimFOVSize; FOVCircle.Color = Color3.fromRGB(255, 180, 50); FOVCircle.Visible = false; FOVCircle.Filled = false
 end
@@ -289,8 +303,7 @@ local espOn = false
 local function handleESP()
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            local hrp = p.Character.HumanoidRootPart
-            local gui = hrp:FindFirstChild("HamsterESP")
+            local hrp = p.Character.HumanoidRootPart; local gui = hrp:FindFirstChild("HamsterESP")
             if not gui then
                 gui = Instance.new("BillboardGui", hrp); gui.Name = "HamsterESP"; gui.AlwaysOnTop = true; gui.Size = UDim2.new(0,100,0,40); gui.StudsOffset = Vector3.new(0,3,0)
                 local t = Instance.new("TextLabel", gui); t.Size = UDim2.new(1,0,1,0); t.BackgroundTransparency = 1; t.Font = Enum.Font.GothamBold; t.TextSize = 12
@@ -302,7 +315,7 @@ end
 createToggle(PageVisual, "👁️ 啟動透視", false, function(s) espOn = s; if s then RunService:BindToRenderStep("ESP", 1, handleESP) else RunService:UnbindFromRenderStep("ESP") end end)
 
 -- ///////////////////////////////////////////////////////////
--- //              👥 玩家管理 (平滑動態傳送修復)           //
+-- //              👥 玩家管理 (動態追蹤 TP)                //
 -- ///////////////////////////////////////////////////////////
 
 createLabel(PagePlayers, "== 選取對象 ==")
@@ -319,49 +332,24 @@ local function updateList()
 end
 createButton(PagePlayers, "🔄 刷新列表", updateList); updateList()
 
--- [修復版] 動態追蹤平滑傳送
 local isTeleporting = false
 createButton(PagePlayers, "🚀 動態追蹤傳送 (防拉回+高度修正)", function()
     if selectedPlayer and selectedPlayer.Character and LocalPlayer.Character and not isTeleporting then
-        isTeleporting = true
-        local hrp = LocalPlayer.Character.HumanoidRootPart
-        local hum = LocalPlayer.Character.Humanoid
-        
-        hum.PlatformStand = true -- 飛行模式
-        
+        isTeleporting = true; local hrp = LocalPlayer.Character.HumanoidRootPart; local hum = LocalPlayer.Character.Humanoid
+        hum.PlatformStand = true
         local connection
         connection = RunService.Heartbeat:Connect(function()
             if not selectedPlayer.Character or not selectedPlayer.Character:FindFirstChild("HumanoidRootPart") or not isTeleporting then
                 isTeleporting = false; hum.PlatformStand = false; connection:Disconnect(); return
             end
-            
-            local targetHrp = selectedPlayer.Character.HumanoidRootPart
-            local targetPos = targetHrp.Position + Vector3.new(0, 5, 0) -- 自動加高 5 格防止入海
-            local currentPos = hrp.Position
-            local direction = (targetPos - currentPos).Unit
-            local distance = (targetPos - currentPos).Magnitude
-            
-            if distance < 5 then -- 到達目的地
-                isTeleporting = false; hum.PlatformStand = false; hrp.Velocity = Vector3.new(0,0,0); connection:Disconnect()
-            else
-                -- 根據設定速度移動 CFrame
-                hrp.CFrame = CFrame.new(currentPos + direction * (tpSpeed / 60), targetPos)
-                hrp.Velocity = Vector3.new(0,0,0) -- 避免物理抖動
-            end
+            local targetHrp = selectedPlayer.Character.HumanoidRootPart; local targetPos = targetHrp.Position + Vector3.new(0, 5, 0)
+            local currentPos = hrp.Position; local direction = (targetPos - currentPos).Unit; local distance = (targetPos - currentPos).Magnitude
+            if distance < 5 then isTeleporting = false; hum.PlatformStand = false; hrp.Velocity = Vector3.new(0,0,0); connection:Disconnect()
+            else hrp.CFrame = CFrame.new(currentPos + direction * (tpSpeed / 60), targetPos); hrp.Velocity = Vector3.new(0,0,0) end
         end)
     end
 end)
-
-createSlider(PagePlayers, "🚄 傳送速度", 50, 400, 100, function(v) tpSpeed = v end)
-
-createButton(PagePlayers, "🌪️ 暴力甩飛 (Fling)", function()
-    if selectedPlayer and selectedPlayer.Character and LocalPlayer.Character then
-        local b = Instance.new("BodyAngularVelocity", LocalPlayer.Character.HumanoidRootPart)
-        b.AngularVelocity = Vector3.new(0, 99999, 0); b.MaxTorque = Vector3.new(0, math.huge, 0); b.P = math.huge
-        local l = RunService.RenderStepped:Connect(function() LocalPlayer.Character.HumanoidRootPart.CFrame = selectedPlayer.Character.HumanoidRootPart.CFrame end)
-        task.wait(2.5); l:Disconnect(); b:Destroy()
-    end
-end)
+createSlider(PagePlayers, "🚄 傳送速度", 50, 400, 120, function(v) tpSpeed = v end)
 
 -- ///////////////////////////////////////////////////////////
 -- //                 熱鍵與結束                            //
@@ -370,5 +358,5 @@ end)
 UserInputService.InputBegan:Connect(function(i, gp) if not gp and i.KeyCode == ToggleKey then MainFrame.Visible = not MainFrame.Visible end end)
 createButton(PagePlayers, "❌ 關閉 UI", function() if FOVCircle then FOVCircle:Remove() end; ScreenGui:Destroy() end)
 
-PagePlayers.Visible = true
-print("HamsterHub V42 Ultimate: Tracking Edition Loaded!")
+PageVehicles.Visible = true
+print("HamsterHub V43 Ultimate: Boat Speed Edition Loaded!")
