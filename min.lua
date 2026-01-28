@@ -25,6 +25,7 @@ end
 
 local ToggleKey = Enum.KeyCode.K
 local selectedPlayer = nil
+local tpSpeed = 100 -- 預設穩定的傳送速度
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
@@ -145,7 +146,7 @@ local PageVisual = createTab("👁️ 視覺透視 (Visual)")
 local PagePlayers = createTab("👥 玩家管理")
 
 -- ///////////////////////////////////////////////////////////
--- //              🛌 床戰功能 (修復跳躍問題)               //
+-- //              🛌 床戰與防拉回系統                      //
 -- ///////////////////////////////////////////////////////////
 
 createLabel(PageBedwars, "== 移動與防禦 ==")
@@ -157,15 +158,8 @@ createToggle(PageBedwars, "🛡️ 防拉回系統 (Anti-Rubber)", false, functi
             if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
                 local hrp = LocalPlayer.Character.HumanoidRootPart
                 local state = LocalPlayer.Character.Humanoid:GetState()
-                
-                -- 當玩家正在跳躍時，放寬 Y 軸限制，避免無法跳躍
-                if state == Enum.HumanoidStateType.Jumping or state == Enum.HumanoidStateType.FallingDown then
-                    return 
-                end
-
-                if hrp.Velocity.Magnitude > 75 then
-                   hrp.Velocity = hrp.Velocity.Unit * 30
-                end
+                if state == Enum.HumanoidStateType.Jumping then return end
+                if hrp.Velocity.Magnitude > 70 then hrp.Velocity = hrp.Velocity.Unit * 20 end
             end
         end)
     else
@@ -173,57 +167,48 @@ createToggle(PageBedwars, "🛡️ 防拉回系統 (Anti-Rubber)", false, functi
     end
 end)
 
-local flySpeed = 50
-local clickFlyActive = false
-createButton(PageBedwars, "📍 平滑點擊飛行 (點擊後移動)", function()
-    clickFlyActive = true
-    createLabel(PageBedwars, "系統：請在地圖上點擊一個點...").TextColor3 = Color3.fromRGB(0, 255, 0)
+local flyActive = false
+local flySpeedVal = 60
+createButton(PageBedwars, "📍 點擊飛行 (點擊地面移動)", function()
+    flyActive = true
+    createLabel(PageBedwars, "系統：請在地圖點擊目標...").TextColor3 = Color3.fromRGB(0, 255, 100)
     local conn
     conn = UserInputService.InputBegan:Connect(function(input, gp)
-        if not gp and input.UserInputType == Enum.UserInputType.MouseButton1 and clickFlyActive then
-            clickFlyActive = false
+        if not gp and input.UserInputType == Enum.UserInputType.MouseButton1 and flyActive then
+            flyActive = false
             conn:Disconnect()
-            local target = Mouse.Hit.p + Vector3.new(0, 3, 0)
+            local targetPos = Mouse.Hit.p + Vector3.new(0, 5, 0)
             if LocalPlayer.Character then
                 local hrp = LocalPlayer.Character.HumanoidRootPart
                 local hum = LocalPlayer.Character.Humanoid
-                local dist = (hrp.Position - target).Magnitude
-                
-                hum.PlatformStand = true -- 飛行時禁止物理
-                local tween = TweenService:Create(hrp, TweenInfo.new(dist/flySpeed, Enum.EasingStyle.Linear), {CFrame = CFrame.new(target)})
+                hum.PlatformStand = true
+                local dist = (hrp.Position - targetPos).Magnitude
+                local tween = TweenService:Create(hrp, TweenInfo.new(dist/flySpeedVal, Enum.EasingStyle.Linear), {CFrame = CFrame.new(targetPos)})
                 tween:Play()
-                
-                tween.Completed:Connect(function()
-                    hum.PlatformStand = false -- 飛行結束恢復跳躍
-                    hrp.Velocity = Vector3.new(0,0,0)
-                end)
+                tween.Completed:Connect(function() hum.PlatformStand = false; hrp.Velocity = Vector3.new(0,0,0) end)
             end
         end
     end)
 end)
-createSlider(PageBedwars, "✈️ 飛行速度", 20, 200, 60, function(v) flySpeed = v end)
+createSlider(PageBedwars, "✈️ 飛行速度", 20, 200, 60, function(v) flySpeedVal = v end)
 
 -- ///////////////////////////////////////////////////////////
--- //              🍎 海賊王 (Blox Fruits)                  //
+-- //              🍎 Blox Fruits 功能                      //
 -- ///////////////////////////////////////////////////////////
 
-createLabel(PageBF, "== 自動連點 ==")
-local bfAutoAtk = false
-createToggle(PageBF, "⚡ 自動攻擊 (Auto Attack)", false, function(s)
-    bfAutoAtk = s
+createLabel(PageBF, "== 自動功能 ==")
+local autoAtk = false
+createToggle(PageBF, "⚡ 自動攻擊", false, function(s)
+    autoAtk = s
     spawn(function()
-        while bfAutoAtk do
-            VirtualUser:CaptureController()
-            VirtualUser:ClickButton1(Vector2.new(0,0))
-            if LocalPlayer.Character then
-                local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-                if tool then tool:Activate() end
-            end
+        while autoAtk do
+            VirtualUser:CaptureController(); VirtualUser:ClickButton1(Vector2.new(0,0))
+            if LocalPlayer.Character then local t = LocalPlayer.Character:FindFirstChildOfClass("Tool"); if t then t:Activate() end end
             task.wait(0.1)
         end
     end)
 end)
-createButton(PageBF, "🍎 自動買果實", function()
+createButton(PageBF, "🍎 隨機買果實", function()
     pcall(function() game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("Cousin", "Buy") end)
 end)
 
@@ -232,128 +217,76 @@ end)
 -- ///////////////////////////////////////////////////////////
 
 createLabel(PageRage, "== 暴力移動 ==")
-local rageSpeed = false
-local speedVal = 1
+local rageOn = false
+local rageSpeedMul = 1
 RunService.Stepped:Connect(function()
-    if rageSpeed and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+    if rageOn and LocalPlayer.Character then
         local hum = LocalPlayer.Character.Humanoid
         local hrp = LocalPlayer.Character.HumanoidRootPart
         if hum.MoveDirection.Magnitude > 0 then
-            hrp.CFrame = hrp.CFrame + (hum.MoveDirection * speedVal)
-            hrp.Velocity = Vector3.new(0,0,0) -- CFrame 移動清空速度防拉回
+            hrp.CFrame = hrp.CFrame + (hum.MoveDirection * rageSpeedMul)
+            hrp.Velocity = Vector3.new(0,0,0)
         end
     end
 end)
-createToggle(PageRage, "⏩ 暴力加速 (CFrame)", false, function(s) rageSpeed = s end)
-createSlider(PageRage, "⚡ 速度倍率", 1, 20, 2, function(v) speedVal = v/2 end)
-
+createToggle(PageRage, "⏩ 暴力加速 (CFrame)", false, function(s) rageOn = s end)
+createSlider(PageRage, "⚡ 加速強度", 1, 10, 2, function(v) rageSpeedMul = v/2 end)
 local noclip = false
-RunService.Stepped:Connect(function()
-    if noclip and LocalPlayer.Character then
-        for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
-            if v:IsA("BasePart") then v.CanCollide = false end
-        end
-    end
-end)
-createToggle(PageRage, "👻 穿牆 (Noclip)", false, function(s) noclip = s end)
+RunService.Stepped:Connect(function() if noclip and LocalPlayer.Character then for _, v in pairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end end end)
+createToggle(PageRage, "👻 穿牆", false, function(s) noclip = s end)
 
 -- ///////////////////////////////////////////////////////////
 -- //              🔢 數值修改 (Stats)                      //
 -- ///////////////////////////////////////////////////////////
 
-createLabel(PageStats, "== 基礎修改 ==")
+createLabel(PageStats, "== 基礎屬性 ==")
 createSlider(PageStats, "🏃 走路速度", 16, 500, 16, function(v) if LocalPlayer.Character then LocalPlayer.Character.Humanoid.WalkSpeed = v end end)
 createSlider(PageStats, "⬆️ 跳躍高度", 50, 500, 50, function(v) if LocalPlayer.Character then LocalPlayer.Character.Humanoid.JumpPower = v end end)
-
 local infJump = false
-UserInputService.JumpRequest:Connect(function()
-    if infJump and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        -- 確保跳躍時沒有被飛行鎖定狀態
-        LocalPlayer.Character.Humanoid.PlatformStand = false
-        LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-    end
-end)
+UserInputService.JumpRequest:Connect(function() if infJump and LocalPlayer.Character then LocalPlayer.Character.Humanoid.PlatformStand = false; LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end end)
 createToggle(PageStats, "☁️ 無限跳", false, function(s) infJump = s end)
 
 -- ///////////////////////////////////////////////////////////
--- //              🔫 競爭者 (Rivals) [自瞄]                //
+-- //              🔫 競爭者 (Rivals)                       //
 -- ///////////////////////////////////////////////////////////
 
-createLabel(PageRivals, "== 自動瞄準 ==")
-local aimOn = false
-local aimFOV = 100
-local aimHold = false
+createLabel(PageRivals, "== 自瞄系統 ==")
+local aimEnabled = false
+local aimFOVSize = 100
+local aimHolding = false
 local FOVCircle = nil
-
 if Drawing then
-    FOVCircle = Drawing.new("Circle")
-    FOVCircle.Thickness = 1
-    FOVCircle.Radius = aimFOV
-    FOVCircle.Color = Color3.fromRGB(255, 180, 50)
-    FOVCircle.Visible = false
-    FOVCircle.Filled = false
+    FOVCircle = Drawing.new("Circle"); FOVCircle.Thickness = 1; FOVCircle.Radius = aimFOVSize; FOVCircle.Color = Color3.fromRGB(255, 180, 50); FOVCircle.Visible = false; FOVCircle.Filled = false
 end
-
-local function getClosest()
-    local target = nil
-    local shortest = aimFOV
+local function getClosestPlayer()
+    local target = nil; local dist = aimFOVSize
     for _, v in pairs(Players:GetPlayers()) do
         if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
             local pos, vis = Camera:WorldToScreenPoint(v.Character.HumanoidRootPart.Position)
-            if vis then
-                local mag = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(pos.X, pos.Y)).Magnitude
-                if mag < shortest then
-                    shortest = mag
-                    target = v
-                end
-            end
+            if vis then local mag = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(pos.X, pos.Y)).Magnitude; if mag < dist then dist = mag; target = v end end
         end
     end
     return target
 end
-
 RunService.RenderStepped:Connect(function()
-    if FOVCircle then
-        FOVCircle.Position = Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)
-        FOVCircle.Radius = aimFOV
-        FOVCircle.Visible = aimOn
-    end
-    if aimOn and aimHold then
-        local t = getClosest()
-        if t then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, t.Character.Head.Position)
-        end
+    if FOVCircle then FOVCircle.Position = Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y); FOVCircle.Radius = aimFOVSize; FOVCircle.Visible = aimEnabled end
+    if aimEnabled and aimHolding then
+        local t = getClosestPlayer(); if t then Camera.CFrame = CFrame.new(Camera.CFrame.Position, t.Character.Head.Position) end
     end
 end)
-
-createToggle(PageRivals, "🎯 啟用自瞄 (按住右鍵)", false, function(s) aimOn = s end)
-createSlider(PageRivals, "⭕ FOV 大小", 30, 800, 100, function(v) aimFOV = v end)
-UserInputService.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton2 then aimHold = true end end)
-UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton2 then aimHold = false end end)
-
-createLabel(PageRivals, "== 其他 ==")
-createToggle(PageRivals, "📦 擴大頭部 (Hitbox)", false, function(state)
-    spawn(function()
-        while state do
-            for _, p in pairs(Players:GetPlayers()) do
-                if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
-                    p.Character.Head.Size = Vector3.new(5,5,5)
-                    p.Character.Head.Transparency = 0.5
-                    p.Character.Head.CanCollide = false
-                end
-            end
-            task.wait(1)
-        end
-    end)
-end)
+createToggle(PageRivals, "🎯 啟用自瞄 (右鍵)", false, function(s) aimEnabled = s end)
+createSlider(PageRivals, "⭕ FOV 大小", 30, 800, 100, function(v) aimFOVSize = v end)
+UserInputService.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton2 then aimHolding = true end end)
+UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton2 then aimHolding = false end end)
+createToggle(PageRivals, "📦 擴大頭部 (Hitbox)", false, function(s) spawn(function() while s do for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then p.Character.Head.Size = Vector3.new(5,5,5); p.Character.Head.Transparency = 0.5; p.Character.Head.CanCollide = false end end task.wait(1) end end) end)
 
 -- ///////////////////////////////////////////////////////////
 -- //              👁️ 視覺透視 (Visual)                     //
 -- ///////////////////////////////////////////////////////////
 
 createLabel(PageVisual, "== 玩家 ESP ==")
-local espEnabled = false
-local function doESP()
+local espOn = false
+local function handleESP()
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
             local hrp = p.Character.HumanoidRootPart
@@ -362,50 +295,71 @@ local function doESP()
                 gui = Instance.new("BillboardGui", hrp); gui.Name = "HamsterESP"; gui.AlwaysOnTop = true; gui.Size = UDim2.new(0,100,0,40); gui.StudsOffset = Vector3.new(0,3,0)
                 local t = Instance.new("TextLabel", gui); t.Size = UDim2.new(1,0,1,0); t.BackgroundTransparency = 1; t.Font = Enum.Font.GothamBold; t.TextSize = 12
             end
-            gui.Enabled = espEnabled
-            gui.TextLabel.Text = p.DisplayName .. "\n" .. math.floor((hrp.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude) .. "m"
-            gui.TextLabel.TextColor3 = p.TeamColor.Color
+            gui.Enabled = espOn; gui.TextLabel.Text = p.DisplayName .. "\n" .. math.floor((hrp.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude) .. "m"; gui.TextLabel.TextColor3 = p.TeamColor.Color
         end
     end
 end
-createToggle(PageVisual, "👁️ 啟動透視", false, function(s)
-    espEnabled = s
-    if s then RunService:BindToRenderStep("ESP", 1, doESP) else RunService:UnbindFromRenderStep("ESP") end
-end)
+createToggle(PageVisual, "👁️ 啟動透視", false, function(s) espOn = s; if s then RunService:BindToRenderStep("ESP", 1, handleESP) else RunService:UnbindFromRenderStep("ESP") end end)
 
 -- ///////////////////////////////////////////////////////////
--- //              👥 玩家管理 (甩飛與傳送)                 //
+-- //              👥 玩家管理 (平滑動態傳送修復)           //
 -- ///////////////////////////////////////////////////////////
 
-createLabel(PagePlayers, "== 操作對象 ==")
-local playerStatus = createLabel(PagePlayers, "目前選擇: 無")
+createLabel(PagePlayers, "== 選取對象 ==")
+local targetInfo = createLabel(PagePlayers, "目前選擇: 無")
 local pScroll = Instance.new("ScrollingFrame", PagePlayers); pScroll.Size = UDim2.new(1,-5,0,120); pScroll.BackgroundColor3 = Color3.fromRGB(25,25,30); Instance.new("UIListLayout", pScroll)
-
-local function refreshP()
+local function updateList()
     for _, v in pairs(pScroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer then
-            local b = Instance.new("TextButton", pScroll); b.Size = UDim2.new(1,0,0,30); b.Text = p.DisplayName; b.BackgroundColor3 = Color3.fromRGB(40,40,45); b.TextColor3 = Color3.fromRGB(255,255,255); b.Font = Enum.Font.Gotham
-            b.MouseButton1Click:Connect(function() selectedPlayer = p; playerStatus.Text = "目前選擇: " .. p.DisplayName end)
+            local b = Instance.new("TextButton", pScroll); b.Size = UDim2.new(1,0,0,30); b.Text = p.DisplayName; b.BackgroundColor3 = Color3.fromRGB(40,40,45); b.TextColor3 = Color3.fromRGB(255,255,255)
+            b.MouseButton1Click:Connect(function() selectedPlayer = p; targetInfo.Text = "目前選擇: " .. p.DisplayName end)
         end
     end
 end
-createButton(PagePlayers, "🔄 刷新名單", refreshP); refreshP()
+createButton(PagePlayers, "🔄 刷新列表", updateList); updateList()
+
+-- [修復版] 動態追蹤平滑傳送
+local isTeleporting = false
+createButton(PagePlayers, "🚀 動態追蹤傳送 (防拉回+高度修正)", function()
+    if selectedPlayer and selectedPlayer.Character and LocalPlayer.Character and not isTeleporting then
+        isTeleporting = true
+        local hrp = LocalPlayer.Character.HumanoidRootPart
+        local hum = LocalPlayer.Character.Humanoid
+        
+        hum.PlatformStand = true -- 飛行模式
+        
+        local connection
+        connection = RunService.Heartbeat:Connect(function()
+            if not selectedPlayer.Character or not selectedPlayer.Character:FindFirstChild("HumanoidRootPart") or not isTeleporting then
+                isTeleporting = false; hum.PlatformStand = false; connection:Disconnect(); return
+            end
+            
+            local targetHrp = selectedPlayer.Character.HumanoidRootPart
+            local targetPos = targetHrp.Position + Vector3.new(0, 5, 0) -- 自動加高 5 格防止入海
+            local currentPos = hrp.Position
+            local direction = (targetPos - currentPos).Unit
+            local distance = (targetPos - currentPos).Magnitude
+            
+            if distance < 5 then -- 到達目的地
+                isTeleporting = false; hum.PlatformStand = false; hrp.Velocity = Vector3.new(0,0,0); connection:Disconnect()
+            else
+                -- 根據設定速度移動 CFrame
+                hrp.CFrame = CFrame.new(currentPos + direction * (tpSpeed / 60), targetPos)
+                hrp.Velocity = Vector3.new(0,0,0) -- 避免物理抖動
+            end
+        end)
+    end
+end)
+
+createSlider(PagePlayers, "🚄 傳送速度", 50, 400, 100, function(v) tpSpeed = v end)
 
 createButton(PagePlayers, "🌪️ 暴力甩飛 (Fling)", function()
     if selectedPlayer and selectedPlayer.Character and LocalPlayer.Character then
         local b = Instance.new("BodyAngularVelocity", LocalPlayer.Character.HumanoidRootPart)
         b.AngularVelocity = Vector3.new(0, 99999, 0); b.MaxTorque = Vector3.new(0, math.huge, 0); b.P = math.huge
-        local loop = RunService.RenderStepped:Connect(function()
-            LocalPlayer.Character.HumanoidRootPart.CFrame = selectedPlayer.Character.HumanoidRootPart.CFrame
-        end)
-        task.wait(2.5); loop:Disconnect(); b:Destroy()
-    end
-end)
-
-createButton(PagePlayers, "🚀 瞬間傳送", function()
-    if selectedPlayer and selectedPlayer.Character then
-        LocalPlayer.Character.HumanoidRootPart.CFrame = selectedPlayer.Character.HumanoidRootPart.CFrame
+        local l = RunService.RenderStepped:Connect(function() LocalPlayer.Character.HumanoidRootPart.CFrame = selectedPlayer.Character.HumanoidRootPart.CFrame end)
+        task.wait(2.5); l:Disconnect(); b:Destroy()
     end
 end)
 
@@ -413,14 +367,8 @@ end)
 -- //                 熱鍵與結束                            //
 -- ///////////////////////////////////////////////////////////
 
-UserInputService.InputBegan:Connect(function(i, gp)
-    if not gp and i.KeyCode == ToggleKey then MainFrame.Visible = not MainFrame.Visible end
-end)
+UserInputService.InputBegan:Connect(function(i, gp) if not gp and i.KeyCode == ToggleKey then MainFrame.Visible = not MainFrame.Visible end end)
+createButton(PagePlayers, "❌ 關閉 UI", function() if FOVCircle then FOVCircle:Remove() end; ScreenGui:Destroy() end)
 
-createButton(PagePlayers, "❌ 關閉 UI 並停止所有功能", function()
-    if FOVCircle then FOVCircle:Remove() end
-    ScreenGui:Destroy()
-end)
-
-PageBedwars.Visible = true
-print("HamsterHub V41 Ultimate Loaded!")
+PagePlayers.Visible = true
+print("HamsterHub V42 Ultimate: Tracking Edition Loaded!")
